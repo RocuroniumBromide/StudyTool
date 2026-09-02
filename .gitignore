@@ -1,0 +1,12 @@
+# Your study data and the session signing key. Never commit these - the server
+# creates its own on first run, and yours are nobody else's business.
+# The leading slash matters: it pins this to the top level, so the app's own
+# js/data folder is still tracked.
+/data/
+
+# Python build leftovers
+__pycache__/
+*.pyc
+
+# Zips made for uploading
+*.zip

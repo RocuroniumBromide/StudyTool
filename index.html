@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="StudyTool" />
+  <meta name="theme-color" content="#2f6fed" />
+  <title>StudyTool</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <!--API_CONFIG-->
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#/">StudyTool</a>
+    <nav class="topnav">
+      <a href="#/general">General study</a>
+      <a href="#/exams">Exam study</a>
+      <a href="#/topics">Topic editor</a>
+    </nav>
+  </header>
+
+  <main id="app" class="container"></main>
+
+  <!-- Utilities -->
+  <script src="js/util/dom.js"></script>
+  <script src="js/util/dates.js"></script>
+  <script src="js/util/format.js"></script>
+
+  <!-- Data layer: shared repository logic, then the two storage backends -->
+  <script src="js/data/schema.js"></script>
+  <script src="js/data/blobRepo.js"></script>
+  <script src="js/data/localRepo.js"></script>
+  <script src="js/data/remoteRepo.js"></script>
+  <script src="js/data/repo.js"></script>
+
+  <!-- Shared components -->
+  <script src="js/components/progressBar.js"></script>
+  <script src="js/components/topicPicker.js"></script>
+  <script src="js/components/topicBoard.js"></script>
+  <script src="js/components/quizEditor.js"></script>
+
+  <!-- Views -->
+  <script src="js/views/home.js"></script>
+  <script src="js/views/topicEditor.js"></script>
+  <script src="js/views/general.js"></script>
+  <script src="js/views/examList.js"></script>
+  <script src="js/views/examForm.js"></script>
+  <script src="js/views/examDetail.js"></script>
+  <script src="js/views/sessionForm.js"></script>
+
+  <!-- Boot -->
+  <script src="js/router.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
