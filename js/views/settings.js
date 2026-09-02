@@ -57,17 +57,22 @@ App.views.settings = function (root) {
     return '<div class="section-head"><h2>How the dates are worked out</h2></div>' +
       '<div class="card">' +
         '<p class="hint">Every time you record a session, the next due date is set by ' +
-        'one of three rules:</p>' +
+        'one of two rules:</p>' +
         '<ol class="rules">' +
           '<li><strong>Rated Very low or Low</strong> &ndash; back to the bottom of the ' +
-          'ladder. How late you were tells us nothing extra; the rating already said it.</li>' +
-          '<li><strong>Rated Medium or High, on time or late</strong> &ndash; the next gap ' +
-          'is the larger of your interval above and the gap you just survived. Recalling ' +
-          'something after 30 days is evidence of 30-day retention, so it counts.</li>' +
-          '<li><strong>Rated Medium or High but reviewed early</strong> &ndash; the due date ' +
-          'does not move. Studying early is always fine, but recalling something you had ' +
-          'not begun to forget has not demonstrated anything new.</li>' +
+          'ladder, whether you were early, on time or late. Finding out early that you ' +
+          'have lost a topic is the most useful thing this can learn, so it acts on it ' +
+          'straight away.</li>' +
+          '<li><strong>Rated Medium or High</strong> &ndash; you earn credit in proportion ' +
+          'to how much of the wait you actually did, and the due date never moves earlier. ' +
+          'Wait the full time or longer and the next gap is the larger of your interval and ' +
+          'the gap you just survived &ndash; recalling something after 30 days is evidence ' +
+          'of 30-day retention. Come back very early and the date simply holds.</li>' +
         '</ol>' +
+        '<p class="hint">There is no cut-off between early and on time, because there ' +
+        'is not one in the underlying research: reviewing on day 15 of 16 is worth ' +
+        'very nearly what day 16 is worth, and the credit tapers smoothly rather than ' +
+        'switching off. Break-even sits at about half the wait.</p>' +
         '<p class="hint">Changing the numbers above re-dates every topic straight away, ' +
         'because due dates are worked out from your session history rather than stored.</p>' +
       '</div>';

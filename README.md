@@ -78,24 +78,52 @@ Due dates are **recomputed from your session history**, never stored. Change an
 interval in Settings and everything re-dates immediately, and there is no
 derived field that can drift out of step with the sessions.
 
-Three rules decide the next date:
+Two rules decide the next date:
 
-| What happened | Next due date |
+1. **Rated Very low or Low** — reset to the bottom of the ladder, whether you
+   were early, on time or late. This takes precedence over everything else:
+   finding out early that you have lost a topic is the most useful thing the
+   schedule can learn, so it acts on it immediately, even if that pulls the due
+   date earlier.
+2. **Rated Medium or High** — credit in proportion to the share of the wait you
+   actually completed, and the due date never moves earlier.
+
+```
+share    = elapsed / the wait you were scheduled to do   (capped at 1)
+interval = max(your interval x share, elapsed)
+new due  = the later of the existing due date and this one
+```
+
+There is deliberately **no cut-off between early and on time**, because there
+isn't one in the phenomenon: the spacing curve is flat near its optimum and
+retrieval strength decays smoothly, so day 15 of 16 is worth very nearly what
+day 16 is worth. A binary rule would model a discontinuity that does not exist.
+On a 16-day interval:
+
+| Reviewed at | New due |
 | --- | --- |
-| Rated **Very low** or **Low** | today + the Low interval. Reset to the bottom; how late you were tells us nothing extra, the rating already said it |
-| Rated **Medium** or **High**, on time or late | today + **max**(your interval, days actually elapsed) |
-| Rated **Medium** or **High**, reviewed early | unchanged — it keeps its original due date |
+| day 3 or day 8 | unchanged (day 16) — break-even is about half the wait |
+| day 12 | day 24 |
+| day 15 | day 30 |
+| day 16 | day 32 |
+| day 40 | day 80 |
 
-The second rule is the late bonus: recalling something after 30 days is
-evidence of 30-day retention, so the next gap should be at least that. It also
-means a too-conservative interval table stretches itself toward what actually
-works for you, without any attempt to profile you. It is self-limiting, because
-a topic you have genuinely lost gets rated Low and resets.
+Waiting the full time or longer gives `share = 1`, which reduces to
+`max(interval, elapsed)` — the late bonus. Recalling something after 30 days is
+evidence of 30-day retention, so the next gap should be at least that. That
+also means a too-conservative interval table stretches itself toward what works
+for you, with no attempt to profile you, and it is self-limiting because a
+topic you have genuinely lost gets rated Low and resets.
 
-The third rule means studying early is always allowed and never penalised — it
-just does not advance you, because an easy retrieval of something you had not
-begun to forget has not demonstrated anything. The session row says so, rather
-than leaving the unmoved due date looking like a bug.
+Coming back very early earns a small share of a small interval, which cannot
+beat the date already set, so the schedule simply holds. The session row says
+which of the three happened — *schedule unchanged*, *part credit* or *schedule
+reset* — rather than leaving the date looking like it ignored you.
+
+The proportional-credit shape is an approximation, not a finding: the evidence
+supports that the function is continuous and that early reviews yield less, not
+that credit is linear in the fraction waited. FSRS does this properly with a
+fitted memory model; this sketches the same shape by hand.
 
 **Topics you have never studied are not overdue.** They stay grey chips until
 they have one session, so entering a term's worth of topics does not greet you

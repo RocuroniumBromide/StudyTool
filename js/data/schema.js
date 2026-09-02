@@ -181,20 +181,32 @@ App.model = (function () {
    * intervals in Settings immediately re-dates everything, and there is no
    * derived field that can drift out of step with the sessions themselves.
    *
-   * Three rules, applied to each session in date order:
+   * Two rules, applied to each session in date order:
    *
-   *  1. Rated Very low or Low - reset to the bottom of the ladder. How late
-   *     you were tells us nothing extra; the low rating already said it.
-   *  2. Rated Medium or High, on time or late - the next gap is the larger of
-   *     your interval and the gap you just proved you could survive. Recalling
-   *     something after 30 days is evidence of 30-day retention, so it counts.
-   *  3. Rated Medium or High but reviewed early - the due date does not move.
-   *     Looking at it early is always allowed, but an easy retrieval of
-   *     something you had not yet started to forget has not demonstrated
-   *     anything, so it does not buy a longer gap.
+   *  1. Rated Very low or Low - reset to the bottom of the ladder, whether
+   *     you were early, on time or late. This takes precedence over
+   *     everything: discovering early that you have lost a topic is the most
+   *     useful thing the schedule can learn, so it must act on it.
+   *  2. Rated Medium or High - credit in proportion to the share of the wait
+   *     you actually completed, and the due date never moves earlier.
    *
-   * Returns the due date and the ids of sessions that were early, so the
-   * board can say so rather than leaving you to wonder why nothing changed.
+   * Rule 2 covers early, on time and late as one continuous function, because
+   * that is the shape of the thing being modelled: the spacing curve is flat
+   * near its optimum and retrieval strength decays smoothly, so there is no
+   * point at which "early" abruptly becomes "on time". Reviewing on day 15 of
+   * 16 should not be worth categorically less than day 16.
+   *
+   *   share    = elapsed / the wait you were scheduled to do (capped at 1)
+   *   interval = max(your interval x share, elapsed)
+   *   new due  = the later of the existing due date and this one
+   *
+   * Waiting the full time or longer gives share = 1, which reduces to
+   * max(interval, elapsed) - the late bonus, unchanged. Coming back very
+   * early earns a small share of a small interval, which cannot beat the date
+   * already set, so the schedule holds. Break-even sits around half the wait.
+   *
+   * Returns the due date, plus a note per early session so the board can say
+   * what happened rather than leaving an unmoved date looking like a bug.
    */
   function schedule(sessions, meta) {
     var ordered = sessions.slice().sort(function (a, b) {
@@ -204,30 +216,44 @@ App.model = (function () {
 
     var due = null;
     var previousDate = null;
-    var earlyIds = {};
+    var earlyNotes = {};
 
     ordered.forEach(function (session) {
-      if (due && session.date < due) {
-        earlyIds[session.id] = true;
-        previousDate = session.date;
-        return;
-      }
-
+      var dueBefore = due;
+      var wasEarly = Boolean(due && session.date < due);
       var table = meta.intervals[session.confidence] || DEFAULT_INTERVALS[3];
-      var interval;
 
       if (session.confidence <= 2) {
-        interval = table;
+        // Rule 1. Note this may pull the due date *earlier* - that is the
+        // point, you have just found out you cannot recall it.
+        due = App.dates.addDays(session.date, Math.min(table, meta.maxInterval));
       } else {
-        var elapsed = previousDate ? App.dates.daysBetween(previousDate, session.date) : 0;
-        interval = Math.max(table, elapsed);
+        var interval;
+
+        if (!previousDate || !due) {
+          interval = table;
+        } else {
+          var elapsed = App.dates.daysBetween(previousDate, session.date);
+          var scheduledWait = App.dates.daysBetween(previousDate, due);
+          var share = scheduledWait > 0 ? Math.min(1, elapsed / scheduledWait) : 1;
+          interval = Math.max(table * share, elapsed);
+        }
+
+        interval = Math.max(1, Math.round(Math.min(interval, meta.maxInterval)));
+        var candidate = App.dates.addDays(session.date, interval);
+        due = (due && candidate < due) ? due : candidate;
       }
 
-      due = App.dates.addDays(session.date, Math.min(interval, meta.maxInterval));
+      if (wasEarly) {
+        earlyNotes[session.id] = session.confidence <= 2
+          ? 'reset'
+          : (due === dueBefore ? 'unchanged' : 'partial');
+      }
+
       previousDate = session.date;
     });
 
-    return { due: due, earlyIds: earlyIds };
+    return { due: due, earlyNotes: earlyNotes };
   }
 
   /**
@@ -249,7 +275,7 @@ App.model = (function () {
       // A topic you have never studied is not "overdue" - it has no schedule
       // yet. It stays a grey chip, so entering a term's worth of topics does
       // not greet you with fifty overdue items on day one.
-      var plan = latest ? schedule(list, settings) : { due: null, earlyIds: {} };
+      var plan = latest ? schedule(list, settings) : { due: null, earlyNotes: {} };
 
       return {
         topic: topic,
@@ -261,7 +287,7 @@ App.model = (function () {
         quizzes: latestQuizzes(list),
         due: plan.due,
         dueIn: plan.due ? App.dates.daysFromToday(plan.due) : null,
-        earlyIds: plan.earlyIds
+        earlyNotes: plan.earlyNotes
       };
     });
 

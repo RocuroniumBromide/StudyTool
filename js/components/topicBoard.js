@@ -7,6 +7,12 @@ App.components.topicBoard = (function () {
   var esc = App.dom.esc;
   var fmt = App.format;
 
+  var EARLY_TEXT = {
+    unchanged: 'schedule unchanged',
+    partial: 'part credit',
+    reset: 'schedule reset'
+  };
+
   function quizBadge(quiz) {
     return '<span class="quiz-badge">' + esc(quiz.type) +
       '<span class="val conf-' + fmt.scoreBand(quiz.fraction) + '">' +
@@ -53,13 +59,14 @@ App.components.topicBoard = (function () {
 
   function sessionRow(session, entry) {
     var confidence = fmt.confidence(session.confidence);
-    var wasEarly = entry.earlyIds && entry.earlyIds[session.id];
+    var earlyNote = entry.earlyNotes && entry.earlyNotes[session.id];
     return '<div class="session-row">' +
       '<span class="session-when">' + esc(App.dates.relative(session.date)) +
         '<span class="date">(' + esc(App.dates.toDisplay(session.date)) + ')</span></span>' +
-      // Say why an early review changed nothing, rather than leaving the
-      // unmoved due date looking like a bug.
-      (wasEarly ? '<span class="early-note">reviewed early &ndash; schedule unchanged</span>' : '') +
+      // Say what an early review did, rather than leaving the due date
+      // looking like it ignored you.
+      (earlyNote ? '<span class="early-note">reviewed early &ndash; ' +
+        esc(EARLY_TEXT[earlyNote]) + '</span>' : '') +
       '<span class="spacer"></span>' +
       sessionQuizBadges(session) +
       '<span class="pill conf-' + (confidence ? confidence.band : 'grey') + '">' +
