@@ -32,23 +32,29 @@ db = storage.Storage(DATA_DIR)
 app = Flask(__name__, static_folder=None)
 
 
+SECRET_KEY_PATH = os.path.join(DATA_DIR, "secret_key.txt")
+
+
+def _new_secret_key():
+    key = secrets.token_hex(32)
+    os.makedirs(DATA_DIR, exist_ok=True)
+    with open(SECRET_KEY_PATH, "w", encoding="utf-8") as handle:
+        handle.write(key)
+    return key
+
+
 def _secret_key():
     """A stable signing key, generated once and kept beside the database.
 
     Regenerating it on every start would sign everyone out on each restart,
     and hard-coding one would mean the key lives in the source.
     """
-    path = os.path.join(DATA_DIR, "secret_key.txt")
-    if os.path.exists(path):
-        with open(path, "r", encoding="utf-8") as handle:
+    if os.path.exists(SECRET_KEY_PATH):
+        with open(SECRET_KEY_PATH, "r", encoding="utf-8") as handle:
             key = handle.read().strip()
             if key:
                 return key
-    key = secrets.token_hex(32)
-    os.makedirs(DATA_DIR, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as handle:
-        handle.write(key)
-    return key
+    return _new_secret_key()
 
 
 def _secure_cookies():
@@ -102,6 +108,10 @@ LOGIN_PAGE = """<!DOCTYPE html>
   <div class="login-wrap">
     <h1>StudyTool</h1>
     <p class="hint">Enter your password to continue.</p>
+    {% if signed_out_everywhere %}
+      <p class="hint" style="color:#14713f">Signed out on all devices. Any browser
+      that was still logged in has been kicked out.</p>
+    {% endif %}
     {% if not password_set %}
       <p class="error">This site has no password set yet. Open
       <code>config.py</code>, change <code>PASSWORD</code>, and reload the web
@@ -140,6 +150,7 @@ def login():
         error=error,
         next_url=next_url,
         password_set=password_is_set(),
+        signed_out_everywhere=request.args.get("signed_out_everywhere") == "1",
     )
 
 
@@ -147,6 +158,23 @@ def login():
 def logout():
     session.clear()
     return redirect(url_for("login"))
+
+
+@app.route("/sign-out-everywhere", methods=["POST"])
+def sign_out_everywhere():
+    """Sign out every device, including this one.
+
+    Sessions are cookies signed with the app's secret key, so changing the
+    password does not touch a browser that is already signed in - it is only
+    checked when signing in. Replacing the key is what actually invalidates
+    them, everywhere, at once.
+    """
+    if not logged_in():
+        return redirect(url_for("login"))
+
+    app.secret_key = _new_secret_key()
+    session.clear()
+    return redirect(url_for("login", signed_out_everywhere="1"))
 
 
 # --------------------------------------------------------------------------

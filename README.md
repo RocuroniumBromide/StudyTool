@@ -215,6 +215,13 @@ PUT  /api/data   <-  { "revision": 7, "data": { ... } }
                  ->  { "revision": 8 }
 ```
 
+`POST /sign-out-everywhere` ends every session on every device. Sessions are
+cookies signed with the app's secret key, so **changing the password does not
+sign anyone out** — the password is only checked at sign-in. Replacing the key
+is what invalidates them, which is what that endpoint does, and it is on the
+homepage as *Sign out all devices*. It signs you out too; that is the same
+mechanism, not a bug.
+
 The revision is how two devices stay honest. A `PUT` carrying a stale revision
 is rejected with `409`, and the page reloads rather than overwriting whatever
 the other device saved. Without it, opening the app on your iPad and your

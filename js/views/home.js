@@ -102,13 +102,36 @@ App.views.home = function (root) {
   }
 
   function signOut() {
-    return '<form method="post" action="/logout" style="margin-top:16px">' +
-      '<button type="submit" class="btn secondary small">Sign out</button>' +
-      '</form>';
+    return '<div class="section-head"><h2>Devices</h2></div>' +
+      '<div class="card">' +
+        '<p class="hint">Signing in leaves a browser logged in for 90 days. ' +
+        'Changing your password does not end those sessions - it is only checked ' +
+        'when signing in - so use the second button if you have signed in ' +
+        'somewhere you would rather not stay signed in.</p>' +
+        '<div class="row-gap">' +
+          '<form method="post" action="/logout">' +
+            '<button type="submit" class="btn secondary small">Sign out</button>' +
+          '</form>' +
+          '<form method="post" action="/sign-out-everywhere" data-signout-all>' +
+            '<button type="submit" class="btn danger small">Sign out all devices</button>' +
+          '</form>' +
+        '</div>' +
+      '</div>';
   }
 
   function bindBackup(container) {
     var fileInput = container.querySelector('[data-import-file]');
+
+    var signOutAll = container.querySelector('[data-signout-all]');
+    if (signOutAll) {
+      signOutAll.addEventListener('submit', function (event) {
+        if (!window.confirm('Sign out every device, including this one?\n\n' +
+            'Anyone still logged in anywhere will be sent back to the login page. ' +
+            'You will need to sign in again yourself.')) {
+          event.preventDefault();
+        }
+      });
+    }
 
     container.querySelector('[data-export]').addEventListener('click', function () {
       App.repo.getAll().then(function (data) {
