@@ -14,8 +14,43 @@ App.model = (function () {
     return { version: SCHEMA_VERSION, meta: emptyMeta(), subjects: [], exams: [], sessions: [] };
   }
 
+  /* Days until a topic comes back, by the confidence you gave it.
+     Starting points, not settled fact - they are editable in Settings, and
+     rule 2 below stretches them towards what actually works for you. */
+  var DEFAULT_INTERVALS = { 1: 1, 2: 3, 3: 7, 4: 16 };
+  var DEFAULT_MAX_INTERVAL = 90;
+
   function emptyMeta() {
-    return { lastBackupAt: null };
+    return {
+      lastBackupAt: null,
+      intervals: {
+        1: DEFAULT_INTERVALS[1],
+        2: DEFAULT_INTERVALS[2],
+        3: DEFAULT_INTERVALS[3],
+        4: DEFAULT_INTERVALS[4]
+      },
+      maxInterval: DEFAULT_MAX_INTERVAL
+    };
+  }
+
+  function normaliseMeta(raw) {
+    var meta = raw || {};
+    var source = meta.intervals || {};
+    var intervals = {};
+
+    [1, 2, 3, 4].forEach(function (level) {
+      var value = Number(source[level]);
+      intervals[level] = (isFinite(value) && value >= 1)
+        ? Math.round(value)
+        : DEFAULT_INTERVALS[level];
+    });
+
+    var max = Number(meta.maxInterval);
+    return {
+      lastBackupAt: meta.lastBackupAt || null,
+      intervals: intervals,
+      maxInterval: (isFinite(max) && max >= 1) ? Math.round(max) : DEFAULT_MAX_INTERVAL
+    };
   }
 
   /** Defensive fill-in so a hand-edited or older export still loads. */
@@ -23,9 +58,7 @@ App.model = (function () {
     var data = raw && typeof raw === 'object' ? raw : {};
     var out = emptyData();
 
-    out.meta = {
-      lastBackupAt: (data.meta && data.meta.lastBackupAt) || null
-    };
+    out.meta = normaliseMeta(data.meta);
 
     out.subjects = (data.subjects || []).map(function (s, i) {
       return {
@@ -142,18 +175,82 @@ App.model = (function () {
   }
 
   /**
-   * One board entry per topic: its sessions (newest first), the confidence
-   * of the most recent session and the latest quiz score per type.
+   * When is this topic next due?
+   *
+   * Replayed from the session history rather than stored, so editing your
+   * intervals in Settings immediately re-dates everything, and there is no
+   * derived field that can drift out of step with the sessions themselves.
+   *
+   * Three rules, applied to each session in date order:
+   *
+   *  1. Rated Very low or Low - reset to the bottom of the ladder. How late
+   *     you were tells us nothing extra; the low rating already said it.
+   *  2. Rated Medium or High, on time or late - the next gap is the larger of
+   *     your interval and the gap you just proved you could survive. Recalling
+   *     something after 30 days is evidence of 30-day retention, so it counts.
+   *  3. Rated Medium or High but reviewed early - the due date does not move.
+   *     Looking at it early is always allowed, but an easy retrieval of
+   *     something you had not yet started to forget has not demonstrated
+   *     anything, so it does not buy a longer gap.
+   *
+   * Returns the due date and the ids of sessions that were early, so the
+   * board can say so rather than leaving you to wonder why nothing changed.
    */
-  function buildBoard(topics, sessions) {
+  function schedule(sessions, meta) {
+    var ordered = sessions.slice().sort(function (a, b) {
+      if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+      return a.createdAt < b.createdAt ? -1 : 1;
+    });
+
+    var due = null;
+    var previousDate = null;
+    var earlyIds = {};
+
+    ordered.forEach(function (session) {
+      if (due && session.date < due) {
+        earlyIds[session.id] = true;
+        previousDate = session.date;
+        return;
+      }
+
+      var table = meta.intervals[session.confidence] || DEFAULT_INTERVALS[3];
+      var interval;
+
+      if (session.confidence <= 2) {
+        interval = table;
+      } else {
+        var elapsed = previousDate ? App.dates.daysBetween(previousDate, session.date) : 0;
+        interval = Math.max(table, elapsed);
+      }
+
+      due = App.dates.addDays(session.date, Math.min(interval, meta.maxInterval));
+      previousDate = session.date;
+    });
+
+    return { due: due, earlyIds: earlyIds };
+  }
+
+  /**
+   * One board entry per topic: its sessions (newest first), the confidence
+   * of the most recent session, the latest quiz score per type, and when it
+   * is next due.
+   */
+  function buildBoard(topics, sessions, meta) {
     var grouped = {};
     sessions.forEach(function (session) {
       (grouped[session.topicId] = grouped[session.topicId] || []).push(session);
     });
 
+    var settings = normaliseMeta(meta);
+
     var entries = topics.map(function (topic) {
       var list = sortSessionsDesc(grouped[topic.id] || []);
       var latest = list[0] || null;
+      // A topic you have never studied is not "overdue" - it has no schedule
+      // yet. It stays a grey chip, so entering a term's worth of topics does
+      // not greet you with fifty overdue items on day one.
+      var plan = latest ? schedule(list, settings) : { due: null, earlyIds: {} };
+
       return {
         topic: topic,
         sessions: list,
@@ -161,21 +258,34 @@ App.model = (function () {
         confidence: latest ? latest.confidence : null,
         band: latest ? App.format.confidenceBand(latest.confidence) : 'grey',
         lastStudied: latest ? latest.date : null,
-        quizzes: latestQuizzes(list)
+        quizzes: latestQuizzes(list),
+        due: plan.due,
+        dueIn: plan.due ? App.dates.daysFromToday(plan.due) : null,
+        earlyIds: plan.earlyIds
       };
     });
 
-    // Weakest work first: unstudied, then lowest confidence, then least recent.
+    // Due first, most overdue at the top. Within the not-yet-due, soonest
+    // first - which lands close to weakest-first anyway, because a low
+    // confidence rating earns a short interval.
     entries.sort(function (a, b) {
       if (!a.latest && !b.latest) return 0;
       if (!a.latest) return -1;
       if (!b.latest) return 1;
+      if (a.due !== b.due) return a.due < b.due ? -1 : 1;
       if (a.confidence !== b.confidence) return a.confidence - b.confidence;
       if (a.lastStudied !== b.lastStudied) return a.lastStudied < b.lastStudied ? -1 : 1;
       return 0;
     });
 
     return entries;
+  }
+
+  /** Topics due today or overdue. Never-studied topics are not counted. */
+  function countDue(entries) {
+    return entries.filter(function (entry) {
+      return entry.latest && entry.dueIn !== null && entry.dueIn <= 0;
+    }).length;
   }
 
   /** Share of topics in each band, for the progress bar. */
@@ -188,9 +298,15 @@ App.model = (function () {
 
   return {
     SCHEMA_VERSION: SCHEMA_VERSION,
+    DEFAULT_INTERVALS: DEFAULT_INTERVALS,
+    DEFAULT_MAX_INTERVAL: DEFAULT_MAX_INTERVAL,
     newId: newId,
     emptyData: emptyData,
+    emptyMeta: emptyMeta,
     normalise: normalise,
+    normaliseMeta: normaliseMeta,
+    schedule: schedule,
+    countDue: countDue,
     starterSubjects: starterSubjects,
     flattenTopics: flattenTopics,
     topicIndex: topicIndex,

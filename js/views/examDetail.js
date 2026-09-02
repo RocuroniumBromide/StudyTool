@@ -10,11 +10,13 @@ App.views.examDetail = function (root, params) {
     return Promise.all([
       App.repo.getExam(examId),
       App.repo.listSubjects(),
-      App.repo.listSessions({ examId: examId })
+      App.repo.listSessions({ examId: examId }),
+      App.repo.getMeta()
     ]).then(function (results) {
       var exam = results[0];
       var subjects = results[1];
       var sessions = results[2];
+      var meta = results[3];
 
       if (!exam) {
         root.innerHTML = '<h1>Exam not found</h1><p><a href="#/exams">Back to exams</a></p>';
@@ -25,7 +27,7 @@ App.views.examDetail = function (root, params) {
       var topics = exam.topicIds
         .map(function (id) { return index[id]; })
         .filter(Boolean);
-      var entries = App.model.buildBoard(topics, sessions);
+      var entries = App.model.buildBoard(topics, sessions, meta);
       var past = App.dates.isPast(exam.date);
 
       root.innerHTML =

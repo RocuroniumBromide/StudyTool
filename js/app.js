@@ -4,6 +4,7 @@ window.App = window.App || {};
 App.router.define([
   { pattern: /^\/$/,                          view: App.views.home },
   { pattern: /^\/topics$/,                    view: App.views.topicEditor },
+  { pattern: /^\/settings$/,                  view: App.views.settings },
   { pattern: /^\/general$/,                   view: App.views.general },
   { pattern: /^\/general\/session$/,          view: App.views.sessionForm },
   { pattern: /^\/exams$/,                     view: App.views.examList },

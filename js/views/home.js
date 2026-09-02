@@ -18,6 +18,7 @@ App.views.home = function (root) {
     var upcoming = data.exams
       .filter(function (exam) { return exam.date && !App.dates.isPast(exam.date); })
       .sort(function (a, b) { return a.date < b.date ? -1 : 1; })[0];
+    var due = App.model.countDue(App.model.buildBoard(topics, data.sessions, data.meta));
 
     root.innerHTML =
       '<h1>StudyTool</h1>' +
@@ -27,9 +28,13 @@ App.views.home = function (root) {
         modeCard('#/general', 'General study', 'Log sessions against your whole topic list, outside of any exam.') +
         modeCard('#/exams', 'Exam study', 'Build an exam from your topics and track your revision against the date.') +
         modeCard('#/topics', 'Topic editor', 'Manage the subjects and topics that both modes draw from.') +
+        modeCard('#/settings', 'Study schedule', 'Set how long until a topic comes back, and see how due dates are worked out.') +
       '</div>' +
 
       '<div class="stat-row">' +
+        // First, because it is the only one that asks you to do something.
+        '<a class="stat' + (due ? ' stat-due' : '') + '" href="#/general">' +
+          '<div class="num">' + due + '</div><div class="cap">due now</div></a>' +
         stat(topics.length, 'topics') +
         stat(data.sessions.length, 'sessions logged') +
         stat(recent.length, 'sessions this week') +

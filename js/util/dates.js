@@ -32,6 +32,21 @@ App.dates = (function () {
     return Math.round((parse(iso) - parse(today())) / MS_PER_DAY);
   }
 
+  /** Whole days between two 'YYYY-MM-DD' dates. */
+  function daysBetween(fromISO, toISO_) {
+    return Math.round((parse(toISO_) - parse(fromISO)) / MS_PER_DAY);
+  }
+
+  /** 'YYYY-MM-DD' a given number of days after `iso`. */
+  function addDays(iso, days) {
+    var date = parse(iso);
+    date.setDate(date.getDate() + days);
+    return toISO(date);
+  }
+
+  /** Plain day counts, for schedule badges where 'in 2 weeks and 2 days' reads worse. */
+  function days(count) { return plural(count, 'day'); }
+
   function plural(n, word) { return n + ' ' + word + (n === 1 ? '' : 's'); }
 
   /** 10 -> '1 week and 3 days'. Used for both countdowns and 'x ago'. */
@@ -66,6 +81,9 @@ App.dates = (function () {
     parse: parse,
     toDisplay: toDisplay,
     daysFromToday: daysFromToday,
+    daysBetween: daysBetween,
+    addDays: addDays,
+    days: days,
     weeksAndDays: weeksAndDays,
     relative: relative,
     relativeShort: relativeShort,

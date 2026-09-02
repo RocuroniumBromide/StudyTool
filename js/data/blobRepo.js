@@ -91,7 +91,9 @@ App.BlobRepo = (function () {
         return ready.then(function (data) { return commit(data, data); });
       },
 
-      /** Small top-level settings, e.g. when a backup was last exported. */
+      /** Settings: revision intervals, the interval cap, last backup date. */
+      getMeta: function () { return read(function (data) { return data.meta; }); },
+
       updateMeta: function (patch) {
         return write(function (data) {
           Object.keys(patch).forEach(function (key) { data.meta[key] = patch[key]; });

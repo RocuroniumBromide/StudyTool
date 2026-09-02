@@ -15,11 +15,19 @@ App.views.general = function (root) {
         return;
       }
 
-      var entries = App.model.buildBoard(topics, data.sessions);
+      var entries = App.model.buildBoard(topics, data.sessions, data.meta);
+      var due = App.model.countDue(entries);
 
       root.innerHTML =
-        '<div class="page-head"><h1>General study</h1></div>' +
-        '<p class="hint">Every topic in your database, weakest first.</p>' +
+        '<div class="page-head"><h1>General study</h1>' +
+          '<span style="flex:1"></span>' +
+          '<a class="btn secondary small" href="#/settings">Schedule settings</a>' +
+        '</div>' +
+        '<p class="hint">' +
+          (due
+            ? '<strong>' + due + ' topic' + (due === 1 ? '' : 's') + ' due.</strong> '
+            : 'Nothing due. ') +
+          'Due first, then everything else soonest-first.</p>' +
         App.components.progressBar(entries) +
         '<div class="section-head">' +
           '<h2>Study sessions</h2>' +

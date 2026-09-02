@@ -26,6 +26,18 @@ App.components.topicBoard = (function () {
       .join('');
   }
 
+  /* Loud when something is owed, quiet when it is not - the point of the
+     board is to answer "what now", not to narrate every topic's timetable. */
+  function dueBadge(entry) {
+    if (!entry.due || entry.dueIn === null) return '';
+    if (entry.dueIn < 0) {
+      return '<span class="due-badge overdue">' +
+        esc(App.dates.days(Math.abs(entry.dueIn))) + ' overdue</span>';
+    }
+    if (entry.dueIn === 0) return '<span class="due-badge today">Due today</span>';
+    return '<span class="due-badge upcoming">Due in ' + esc(App.dates.days(entry.dueIn)) + '</span>';
+  }
+
   function addButton(entry, options) {
     return '<a class="icon-btn" href="' + esc(options.sessionHref(entry.topic.id)) +
       '" title="Record a session for ' + esc(entry.topic.name) + '" aria-label="Record a session for ' +
@@ -39,11 +51,15 @@ App.components.topicBoard = (function () {
       '</div>';
   }
 
-  function sessionRow(session) {
+  function sessionRow(session, entry) {
     var confidence = fmt.confidence(session.confidence);
+    var wasEarly = entry.earlyIds && entry.earlyIds[session.id];
     return '<div class="session-row">' +
       '<span class="session-when">' + esc(App.dates.relative(session.date)) +
         '<span class="date">(' + esc(App.dates.toDisplay(session.date)) + ')</span></span>' +
+      // Say why an early review changed nothing, rather than leaving the
+      // unmoved due date looking like a bug.
+      (wasEarly ? '<span class="early-note">reviewed early &ndash; schedule unchanged</span>' : '') +
       '<span class="spacer"></span>' +
       sessionQuizBadges(session) +
       '<span class="pill conf-' + (confidence ? confidence.band : 'grey') + '">' +
@@ -63,11 +79,14 @@ App.components.topicBoard = (function () {
           '<div class="topic-card-sub">' + count + ' session' + (count === 1 ? '' : 's') + '</div>' +
         '</div>' +
         '<div class="topic-card-tools">' +
+          dueBadge(entry) +
           entry.quizzes.map(quizBadge).join('') +
           addButton(entry, options) +
         '</div>' +
       '</div>' +
-      '<div class="session-list">' + entry.sessions.map(sessionRow).join('') + '</div>' +
+      '<div class="session-list">' + entry.sessions.map(function (session) {
+        return sessionRow(session, entry);
+      }).join('') + '</div>' +
       '</div>';
   }
 

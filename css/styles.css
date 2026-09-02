@@ -270,3 +270,23 @@ a.icon-btn:hover, a.btn:hover { text-decoration: none; }
   border: 1px solid #cfd6e0; border-radius: 8px; margin-bottom: 12px;
 }
 .login-wrap .btn { width: 100%; }
+
+/* ---------- spaced repetition ---------- */
+.due-badge { border-radius: 999px; padding: 3px 11px; font-size: 12px; font-weight: 700; }
+.due-badge.overdue { background: #e0393b; color: #fff; }
+.due-badge.today { background: #2f6fed; color: #fff; }
+.due-badge.upcoming { background: #fff; color: var(--ink-soft); border: 1px solid #e6eaf0; font-weight: 600; }
+.early-note { font-size: 12px; color: var(--ink-soft); font-style: italic; }
+
+a.stat { color: var(--ink); display: block; }
+a.stat:hover { text-decoration: none; background: #e4e9f0; }
+.stat-due { background: #ffe8e8; }
+.stat-due .num { color: #b02525; }
+.stat-due:hover { background: #ffdcdc; }
+
+.setting-row { display: flex; align-items: center; gap: 10px; padding: 5px 0; }
+.setting-row label { min-width: 120px; margin: 0; }
+.setting-row input[type="number"] { width: 90px; }
+.rules { margin: 0 0 10px; padding-left: 20px; font-size: 13.5px; color: var(--ink-soft); }
+.rules li { margin-bottom: 8px; }
+.rules strong { color: var(--ink); }

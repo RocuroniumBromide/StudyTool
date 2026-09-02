@@ -52,19 +52,59 @@ Import buttons and will nag you when it's been more than four weeks. Keep the
 file in OneDrive and no single failure — cleared browser, dead account,
 provider shutting down — can cost you anything.
 
-## The three modes
+## The modes
 
 **Topic editor** — subjects, each holding topics. This is the one list that
 everything else reads from. Renaming saves when you click away; deleting a
 topic also deletes its study sessions and removes it from any exam.
 
-**General study** — every topic you have, ordered weakest first, counting
-every session you've ever logged, including ones logged under an exam.
+**General study** — every topic you have, due first, counting every session
+you've ever logged, including ones logged under an exam.
 
 **Exam study** — an exam has a name, a date, a pass mark and a chosen subset
 of your topics. Its page shows a countdown, a confidence bar, and only the
 sessions logged against that exam. Past exams get a result field, and the exam
 list shows them as passed or failed.
+
+**Study schedule** — the intervals behind the due dates. Four numbers, one per
+confidence level, plus a cap.
+
+## Spaced repetition
+
+Every studied topic carries a due date, shown on its card: loud when it is due
+or overdue, quiet when it is not. The homepage says how many are due now.
+
+Due dates are **recomputed from your session history**, never stored. Change an
+interval in Settings and everything re-dates immediately, and there is no
+derived field that can drift out of step with the sessions.
+
+Three rules decide the next date:
+
+| What happened | Next due date |
+| --- | --- |
+| Rated **Very low** or **Low** | today + the Low interval. Reset to the bottom; how late you were tells us nothing extra, the rating already said it |
+| Rated **Medium** or **High**, on time or late | today + **max**(your interval, days actually elapsed) |
+| Rated **Medium** or **High**, reviewed early | unchanged — it keeps its original due date |
+
+The second rule is the late bonus: recalling something after 30 days is
+evidence of 30-day retention, so the next gap should be at least that. It also
+means a too-conservative interval table stretches itself toward what actually
+works for you, without any attempt to profile you. It is self-limiting, because
+a topic you have genuinely lost gets rated Low and resets.
+
+The third rule means studying early is always allowed and never penalised — it
+just does not advance you, because an easy retrieval of something you had not
+begun to forget has not demonstrated anything. The session row says so, rather
+than leaving the unmoved due date looking like a bug.
+
+**Topics you have never studied are not overdue.** They stay grey chips until
+they have one session, so entering a term's worth of topics does not greet you
+with fifty overdue items on day one.
+
+Deliberately not built yet: compressing intervals as an exam approaches, and
+weighting sessions where you logged a quiz score differently from plain
+revision. Both are plausible, both need a term of real use to judge, and both
+are easy to add later because the data is already recorded.
 
 ### How a topic gets its colour
 
@@ -80,8 +120,13 @@ From the **most recent** session on that topic:
 The bar at the top of the page is one slice per topic in that same order, so
 the grey tail is how much you haven't touched yet.
 
-Topics are listed weakest first: unstudied chips, then lowest confidence, and
-within the same confidence the one you studied longest ago comes first.
+Colour is about how well you know something; the due badge is about whether
+you owe it attention. They are independent — a green topic you have not touched
+for a month is both well known and overdue, and the board says so.
+
+Ordering is due first, most overdue at the top, with never-studied chips above
+everything. Within the not-yet-due, soonest first — which lands close to
+weakest-first anyway, because a low rating earns a short interval.
 
 ## Layout
 
@@ -105,7 +150,7 @@ js/
     remoteRepo.js     Backend: the server, over HTTP
     repo.js           Picks the backend and exposes App.repo
   components/         Progress bar, topic picker, topic board, quiz editor
-  views/              One file per screen
+  views/              One file per screen, including settings.js
   router.js           Hash router
   app.js              Route table, boot
 ```
@@ -146,7 +191,11 @@ comes from.
 ```jsonc
 {
   "version": 1,
-  "meta": { "lastBackupAt": "2026-09-02" },   // drives the backup reminder
+  "meta": {
+    "lastBackupAt": "2026-09-02",             // drives the backup reminder
+    "intervals": { "1": 1, "2": 3, "3": 7, "4": 16 },  // days, by confidence
+    "maxInterval": 90
+  },
   "subjects": [
     { "id": "sub_x", "name": "Accounting", "order": 0,
       "topics": [ { "id": "top_y", "name": "Taxation", "order": 0 } ] }
