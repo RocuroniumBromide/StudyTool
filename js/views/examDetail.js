@@ -5,6 +5,8 @@ App.views = App.views || {};
 App.views.examDetail = function (root, params) {
   var esc = App.dom.esc;
   var examId = params.examId;
+  // Reset on every visit, never stored - see the note in topicFilter.js.
+  var filter = 'all';
 
   function draw() {
     return Promise.all([
@@ -28,6 +30,7 @@ App.views.examDetail = function (root, params) {
         .map(function (id) { return index[id]; })
         .filter(Boolean);
       var entries = App.model.buildBoard(topics, sessions, meta);
+      var shown = App.components.topicFilter.apply(entries, filter);
       var past = App.dates.isPast(exam.date);
 
       root.innerHTML =
@@ -53,11 +56,14 @@ App.views.examDetail = function (root, params) {
           '<a class="btn" href="#/exams/' + esc(exam.id) + '/session">Record new study session</a>' +
         '</div>' +
 
-        App.components.topicBoard.render(entries, {
-          sessionHref: function (topicId) {
-            return '#/exams/' + exam.id + '/session?topic=' + topicId;
-          }
-        });
+        App.components.topicFilter.render(entries, filter) +
+        (shown.length
+          ? App.components.topicBoard.render(shown, {
+              sessionHref: function (topicId) {
+                return '#/exams/' + exam.id + '/session?topic=' + topicId;
+              }
+            })
+          : App.components.topicFilter.emptyMessage(filter));
     });
   }
 
@@ -99,6 +105,11 @@ App.views.examDetail = function (root, params) {
         App.dom.toast('Result saved');
         draw();
       });
+    });
+
+    App.dom.on(root, 'click', '[data-filter]', function (event, button) {
+      filter = button.getAttribute('data-filter');
+      draw();
     });
 
     App.dom.on(root, 'click', '[data-delete-session]', function (event, button) {

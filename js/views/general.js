@@ -4,6 +4,9 @@ window.App = window.App || {};
 App.views = App.views || {};
 
 App.views.general = function (root) {
+  // Reset on every visit, never stored - see the note in topicFilter.js.
+  var filter = 'all';
+
   function draw() {
     return App.repo.getAll().then(function (data) {
       var topics = App.model.flattenTopics(data.subjects);
@@ -17,6 +20,7 @@ App.views.general = function (root) {
 
       var entries = App.model.buildBoard(topics, data.sessions, data.meta);
       var due = App.model.countDue(entries);
+      var shown = App.components.topicFilter.apply(entries, filter);
 
       root.innerHTML =
         '<div class="page-head"><h1>General study</h1>' +
@@ -33,13 +37,21 @@ App.views.general = function (root) {
           '<h2>Study sessions</h2>' +
           '<a class="btn" href="#/general/session">Record new study session</a>' +
         '</div>' +
-        App.components.topicBoard.render(entries, {
-          sessionHref: function (topicId) { return '#/general/session?topic=' + topicId; }
-        });
+        App.components.topicFilter.render(entries, filter) +
+        (shown.length
+          ? App.components.topicBoard.render(shown, {
+              sessionHref: function (topicId) { return '#/general/session?topic=' + topicId; }
+            })
+          : App.components.topicFilter.emptyMessage(filter));
     });
   }
 
   // Bound once for the life of the view; draw() only replaces the markup.
+  App.dom.on(root, 'click', '[data-filter]', function (event, button) {
+    filter = button.getAttribute('data-filter');
+    draw();
+  });
+
   App.dom.on(root, 'click', '[data-delete-session]', function (event, button) {
     App.repo.deleteSession(button.getAttribute('data-delete-session')).then(function () {
       App.dom.toast('Session deleted');

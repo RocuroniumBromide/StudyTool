@@ -290,3 +290,17 @@ a.stat:hover { text-decoration: none; background: #e4e9f0; }
 .rules { margin: 0 0 10px; padding-left: 20px; font-size: 13.5px; color: var(--ink-soft); }
 .rules li { margin-bottom: 8px; }
 .rules strong { color: var(--ink); }
+
+/* ---------- topic filter ---------- */
+.filter-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.filter-pill {
+  border: 1px solid var(--line); background: #fff; border-radius: 999px;
+  padding: 6px 14px; font: inherit; font-size: 13px; font-weight: 600;
+  color: var(--ink-soft); cursor: pointer;
+}
+.filter-pill:hover { border-color: #c6d3e6; color: var(--ink); }
+.filter-pill .count { color: #9aa7b6; font-weight: 700; margin-left: 2px; }
+.filter-pill.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+.filter-pill.active .count { color: #d6e3ff; }
+.filter-pill.empty { opacity: .45; cursor: default; }
+.filter-pill.empty:hover { border-color: var(--line); color: var(--ink-soft); }

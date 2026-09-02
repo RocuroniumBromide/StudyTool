@@ -101,6 +101,23 @@ than leaving the unmoved due date looking like a bug.
 they have one session, so entering a term's worth of topics does not greet you
 with fifty overdue items on day one.
 
+### Filtering the board
+
+One row of pills above the board — `All · Due · Not started · Low · Medium ·
+High` — with a count on each. Deliberately one mutually-exclusive control
+rather than separate confidence and due filters: combining them produces
+queries you never want and empty results you cannot tell apart from a bug.
+
+Filters subtract only; the due-first ordering is unchanged. The choice resets
+every visit and is never saved, because a sticky "Due" filter you have
+forgotten about is a very good way to open the app, see three cards, and
+conclude you are on top of things.
+
+Note that filtering by confidence is the "ignore the schedule" tool — picking
+topics by weakness rather than by when they fall due is the too-early
+reviewing that earns little. That is the right move in the fortnight before an
+exam and the wrong habit the rest of the year.
+
 Deliberately not built yet: compressing intervals as an exam approaches, and
 weighting sessions where you logged a quiz score differently from plain
 revision. Both are plausible, both need a term of real use to judge, and both
